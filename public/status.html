@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Status</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 30px 15px;
+      background: #f4f6f8;
+      font-family: Arial, sans-serif;
+      color: #1f2937;
+    }
+
+    .card {
+      max-width: 520px;
+      margin: auto;
+      background: white;
+      padding: 28px;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.08);
+    }
+
+    h1 {
+      text-align: center;
+      margin-top: 0;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      font-size: 16px;
+      margin: 15px 0 10px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border: 0;
+      border-radius: 10px;
+      background: #111827;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #result {
+      margin-top: 25px;
+    }
+
+    .row {
+      padding: 14px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .label {
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    .value {
+      margin-top: 5px;
+      font-weight: bold;
+      word-break: break-all;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 7px 11px;
+      border-radius: 20px;
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .timer {
+      margin-top: 20px;
+      padding: 15px;
+      text-align: center;
+      border-radius: 10px;
+      background: #f3f4f6;
+      font-weight: bold;
+      font-size: 18px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+
+  <h1>Order Status</h1>
+
+  <input
+    id="orderId"
+    type="text"
+    placeholder="Enter your Order ID"
+  >
+
+  <button id="checkButton">Check Status</button>
+
+  <div id="result"></div>
+
+</div>
+
+<script>
+
+var currentOrder = null;
+var countdownInterval = null;
+var pollInterval = null;
+
+var input = document.getElementById("orderId");
+var result = document.getElementById("result");
+
+var params = new URLSearchParams(window.location.search);
+var urlOrder = params.get("order");
+
+if (urlOrder) {
+  input.value = urlOrder;
+  checkStatus();
+}
+
+
+document.getElementById("checkButton").onclick = function() {
+  checkStatus();
+};
+
+
+function checkStatus() {
+
+  var orderId = input.value.trim();
+
+  if (!orderId) {
+    result.innerHTML = "Please enter your Order ID.";
+    return;
+  }
+
+  result.innerHTML = "Checking...";
+
+  fetch("/api/orders/" + encodeURIComponent(orderId))
+    .then(function(response) {
+      return response.json();
+    })
+    .then(function(data) {
+
+      if (data.error) {
+        result.innerHTML = data.error;
+        return;
+      }
+
+      currentOrder = data;
+
+      render(data);
+      startPolling();
+      startCountdown();
+
+    })
+    .catch(function() {
+      result.innerHTML =
+        "Unable to connect to the server.";
+    });
+}
+
+
+function render(data) {
+
+  var html =
+    "<div class='row'>" +
+      "<div class='label'>Order ID</div>" +
+      "<div class='value'>" +
+        data.id +
+      "</div>" +
+    "</div>" +
+
+    "<div class='row'>" +
+      "<div class='label'>Amount</div>" +
+      "<div class='value'>$" +
+        Number(data.amount).toFixed(2) +
+      "</div>" +
+    "</div>" +
+
+    "<div class='row'>" +
+      "<div class='label'>Status</div>" +
+      "<div class='value'>" +
+        "<span class='status'>" +
+          data.status +
+        "</span>" +
+      "</div>" +
+    "</div>";
+
+  if (data.status === "PAYMENT_PENDING") {
+    html +=
+      "<div id='timer' class='timer'>" +
+        "Calculating time remaining..." +
+      "</div>";
+  }
+
+  result.innerHTML = html;
+}
+
+
+function startCountdown() {
+
+  clearInterval(countdownInterval);
+
+  countdownInterval = setInterval(function() {
+
+    if (!currentOrder ||
+        !currentOrder.expiresAt ||
+        currentOrder.status !== "PAYMENT_PENDING") {
+      clearInterval(countdownInterval);
+      return;
+    }
+
+    var remaining =
+      new Date(currentOrder.expiresAt).getTime() -
+      Date.now();
+
+    var timer = document.getElementById("timer");
+
+    if (!timer) {
+      clearInterval(countdownInterval);
+      return;
+    }
+
+    if (remaining <= 0) {
+      timer.textContent = "Order expired";
+      clearInterval(countdownInterval);
+
+      checkStatus();
+      return;
+    }
+
+    var totalSeconds =
+      Math.floor(remaining / 1000);
+
+    var hours =
+      Math.floor(totalSeconds / 3600);
+
+    var minutes =
+      Math.floor((totalSeconds % 3600) / 60);
+
+    var seconds =
+      totalSeconds % 60;
+
+    timer.textContent =
+      "Time remaining: " +
+      hours + "h " +
+      String(minutes).padStart(2, "0") +
+      "m " +
+      String(seconds).padStart(2, "0") +
+      "s";
+
+  }, 1000);
+}
+
+
+function startPolling() {
+
+  clearInterval(pollInterval);
+
+  pollInterval = setInterval(function() {
+
+    if (!currentOrder) {
+      return;
+    }
+
+    fetch(
+      "/api/orders/" +
+      encodeURIComponent(currentOrder.id)
+    )
+    .then(function(response) {
+      return response.json();
+    })
+    .then(function(data) {
+
+      if (data.error) {
+        return;
+      }
+
+      currentOrder = data;
+      render(data);
+      startCountdown();
+
+      if (data.status !== "PAYMENT_PENDING") {
+        clearInterval(pollInterval);
+      }
+
+    })
+    .catch(function() {
+      // Keep displaying the last known status.
+    });
+
+  }, 10000);
+}
+
+</script>
+
+</body>
+</html>

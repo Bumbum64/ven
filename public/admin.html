@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Login</title>
+</head>
+<body>
+
+<h2>Admin Login</h2>
+
+<input id="password" type="password" placeholder="Password">
+<button id="loginButton" type="button">Login</button>
+
+<p id="message"></p>
+
+<script>
+document.getElementById("loginButton").onclick = function () {
+
+  var password = document.getElementById("password").value;
+  var message = document.getElementById("message");
+
+  message.innerHTML = "Logging in...";
+
+  fetch("/api/admin/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      password: password
+    })
+  })
+  .then(function(response) {
+    return response.json();
+  })
+  .then(function(data) {
+
+    if (data.success) {
+      message.innerHTML = "Login successful!";
+      window.location.href = "/admin-dashboard.html";
+    } else {
+      message.innerHTML = data.error || "Login failed.";
+    }
+
+  })
+  .catch(function(error) {
+    message.innerHTML = "Error connecting to server.";
+    console.log(error);
+  });
+
+};
+</script>
+
+</body>
+</html>

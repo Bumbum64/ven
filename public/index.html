@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Checkout</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      color: #1f2937;
+      padding: 30px 15px;
+    }
+
+    .container {
+      max-width: 520px;
+      margin: auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.08);
+    }
+
+    h1 {
+      margin-top: 0;
+      text-align: center;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #6b7280;
+      margin-bottom: 25px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      font-size: 17px;
+      margin-bottom: 15px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border: 0;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    #createButton {
+      background: #111827;
+      color: white;
+    }
+
+    #submitButton {
+      background: #16a34a;
+      color: white;
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .result {
+      margin-top: 25px;
+      display: none;
+    }
+
+    .row {
+      padding: 13px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .value {
+      margin-top: 5px;
+      font-weight: bold;
+      word-break: break-all;
+    }
+
+    .copy {
+      width: auto;
+      padding: 7px 12px;
+      margin-left: 5px;
+      background: #e5e7eb;
+      color: #111827;
+      font-size: 13px;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 7px 11px;
+      border-radius: 20px;
+      background: #fef3c7;
+      color: #92400e;
+      font-size: 13px;
+    }
+
+    .timer {
+      text-align: center;
+      margin: 20px 0;
+      padding: 15px;
+      border-radius: 10px;
+      background: #f3f4f6;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .message {
+      margin-top: 15px;
+      text-align: center;
+      color: #374151;
+    }
+
+    a {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      color: #2563eb;
+      text-decoration: none;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+  <div class="card">
+
+    <h1>Payment Checkout</h1>
+    <div class="subtitle">Create a payment order</div>
+
+    <label for="amount">Amount</label>
+    <input
+      id="amount"
+      type="number"
+      min="1"
+      max="10000"
+      step="0.01"
+      placeholder="Enter amount"
+    >
+
+    <button id="createButton">Create Payment Order</button>
+
+    <div id="result" class="result">
+
+      <div class="row">
+        <div>Order ID</div>
+        <div class="value">
+          <span id="orderId"></span>
+          <button class="copy" onclick="copyText('orderId')">Copy</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>Amount</div>
+        <div class="value" id="orderAmount"></div>
+      </div>
+
+      <div class="row">
+  <div>Payment Destination</div>
+
+  <div class="value">
+    <a
+      id="paymentDestinationLink"
+      href="#"
+      target="_blank"
+      rel="noopener noreferrer"
+      style="word-break: break-all;"
+    ></a>
+
+    <button
+      class="copy"
+      type="button"
+      onclick="copyPaymentDestination()"
+    >
+      Copy
+    </button>
+  </div>
+</div>
+
+      <div class="row">
+        <div>Status</div>
+        <div class="value">
+          <span id="status" class="status"></span>
+        </div>
+      </div>
+
+      <div id="timer" class="timer"></div>
+
+      <button id="submitButton">
+        I've Submitted the Payment
+      </button>
+
+      <div id="message" class="message"></div>
+
+     <div style="margin-top:20px;">
+  <div style="font-weight:bold; margin-bottom:8px;">
+    Your Order Link
+  </div>
+
+  <input
+    id="orderLink"
+    type="text"
+    readonly
+    style="margin-bottom:8px;"
+  >
+
+  <button
+    class="copy"
+    type="button"
+    onclick="copyOrderLink()"
+    style="width:100%; margin-left:0;"
+  >
+    Copy Order Link
+  </button>
+
+  <a
+    id="statusLink"
+    href="#"
+    target="_blank"
+    style="margin-top:12px;"
+  >
+    Open Order Status
+  </a>
+</div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+var currentOrder = null;
+var countdownInterval = null;
+
+document.getElementById("createButton").onclick = function () {
+
+  var amount = Number(document.getElementById("amount").value);
+  var message = document.getElementById("message");
+
+  message.textContent = "";
+
+  if (!Number.isFinite(amount) || amount < 1 || amount > 10000) {
+    message.textContent = "Enter an amount between $1 and $10,000.";
+    return;
+  }
+
+  var button = document.getElementById("createButton");
+  button.disabled = true;
+  button.textContent = "Creating...";
+
+  fetch("/api/orders", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      amount: amount
+    })
+  })
+  .then(function(response) {
+    return response.json();
+  })
+  .then(function(data) {
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    currentOrder = data;
+
+    document.getElementById("result").style.display = "block";
+    document.getElementById("orderId").textContent = data.id;
+    document.getElementById("orderAmount").textContent =
+      "$" + Number(data.amount).toFixed(2);
+
+    var paymentLink =
+  document.getElementById("paymentDestinationLink");
+
+paymentLink.textContent =
+  data.paymentDestination;
+
+if (
+  data.paymentDestination.startsWith("http://") ||
+  data.paymentDestination.startsWith("https://")
+) {
+  paymentLink.href = data.paymentDestination;
+} else {
+  paymentLink.href =
+    "https://www.google.com/search?q=" +
+    encodeURIComponent(data.paymentDestination);
+}
+function copyPaymentDestination() {
+
+  var text =
+    document.getElementById("paymentDestinationLink").textContent;
+
+  navigator.clipboard.writeText(text)
+    .then(function() {
+      alert("Payment destination copied.");
+    })
+    .catch(function() {
+      alert("Copy failed. Please copy it manually.");
+    });
+}
+    document.getElementById("status").textContent =
+      data.status;
+
+    document.getElementById("statusLink").href =
+      "/status.html?order=" + encodeURIComponent(data.id);
+var orderUrl =
+  window.location.origin +
+  "/status.html?order=" +
+  encodeURIComponent(data.id);
+
+document.getElementById("orderLink").value = orderUrl;
+document.getElementById("statusLink").href = orderUrl;
+function copyOrderLink() {
+
+  var input = document.getElementById("orderLink");
+
+  navigator.clipboard.writeText(input.value)
+    .then(function() {
+      alert("Order link copied.");
+    })
+    .catch(function() {
+      input.select();
+      document.execCommand("copy");
+      alert("Order link copied.");
+    });
+}
+
+    startCountdown();
+
+    window.scrollTo({
+      top: document.body.scrollHeight,
+      behavior: "smooth"
+    });
+  })
+  .catch(function(error) {
+    message.textContent = error.message;
+  })
+  .finally(function() {
+    button.disabled = false;
+    button.textContent = "Create Payment Order";
+  });
+};
+
+
+document.getElementById("submitButton").onclick = function () {
+
+  if (!currentOrder) {
+    return;
+  }
+
+  var button = document.getElementById("submitButton");
+  var message = document.getElementById("message");
+
+  button.disabled = true;
+  button.textContent = "Submitting...";
+  message.textContent = "";
+
+  fetch(
+    "/api/orders/" +
+    encodeURIComponent(currentOrder.id) +
+    "/payment-submitted",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    }
+  )
+  .then(function(response) {
+    return response.json();
+  })
+  .then(function(data) {
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    currentOrder.status = data.status;
+
+    document.getElementById("status").textContent =
+      data.status;
+
+    document.getElementById("submitButton").style.display = "none";
+
+    clearInterval(countdownInterval);
+
+    document.getElementById("timer").textContent =
+      "Payment submitted. Verification pending.";
+
+    message.textContent =
+      "Your payment submission has been received.";
+  })
+  .catch(function(error) {
+    message.textContent = error.message;
+    button.disabled = false;
+    button.textContent = "I've Submitted the Payment";
+  });
+};
+
+
+function startCountdown() {
+
+  clearInterval(countdownInterval);
+
+  countdownInterval = setInterval(function() {
+
+    if (!currentOrder || !currentOrder.expiresAt) {
+      return;
+    }
+
+    if (currentOrder.status !== "PAYMENT_PENDING") {
+      clearInterval(countdownInterval);
+      return;
+    }
+
+    var remaining =
+      new Date(currentOrder.expiresAt).getTime() -
+      Date.now();
+
+    if (remaining <= 0) {
+
+      clearInterval(countdownInterval);
+
+      document.getElementById("timer").textContent =
+        "Order expired";
+
+      document.getElementById("submitButton").disabled = true;
+
+      document.getElementById("status").textContent =
+        "EXPIRED";
+
+      return;
+    }
+
+    var totalSeconds = Math.floor(remaining / 1000);
+
+    var hours = Math.floor(totalSeconds / 3600);
+    var minutes = Math.floor((totalSeconds % 3600) / 60);
+    var seconds = totalSeconds % 60;
+
+    document.getElementById("timer").textContent =
+      "Time remaining: " +
+      hours + "h " +
+      String(minutes).padStart(2, "0") + "m " +
+      String(seconds).padStart(2, "0") + "s";
+
+  }, 1000);
+}
+
+
+function copyText(elementId) {
+
+  var text =
+    document.getElementById(elementId).textContent;
+
+  navigator.clipboard.writeText(text)
+    .then(function() {
+      alert("Copied.");
+    })
+    .catch(function() {
+      alert("Copy failed. Please copy it manually.");
+    });
+}
+</script>
+
+</body>
+</html>
