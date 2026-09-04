@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buy — Marketplace</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #172033;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 25px;
+      margin-bottom: 20px;
+      box-shadow: 0 5px 25px rgba(0,0,0,.08);
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-top: 15px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 13px;
+      margin-top: 7px;
+      border: 1px solid #ccd3df;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .primary {
+      width: 100%;
+      margin-top: 20px;
+      background: #172033;
+      color: white;
+    }
+
+    .offer {
+      border: 1px solid #e1e5ec;
+      border-radius: 10px;
+      padding: 18px;
+      margin-top: 12px;
+    }
+
+    .offer-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .seller {
+      font-weight: bold;
+    }
+
+    .rate {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .details {
+      color: #687386;
+      margin: 8px 0 15px;
+      font-size: 14px;
+    }
+
+    .select-button {
+      background: #172033;
+      color: white;
+    }
+
+    .message {
+      margin-top: 15px;
+    }
+
+    .error {
+      color: #c62828;
+    }
+
+    .success {
+      color: #16803c;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="card">
+
+    <h1>Buy</h1>
+
+    <p>
+      Choose how much you want to buy and your payment method.
+    </p>
+
+    <label for="amount">Amount</label>
+
+    <input
+      id="amount"
+      type="number"
+      min="1"
+      step="0.01"
+      value="5"
+      placeholder="Enter amount"
+    >
+
+    <label for="paymentMethod">Payment method</label>
+
+    <select id="paymentMethod">
+      <option value="VENMO">Venmo</option>
+    </select>
+
+    <button
+      class="primary"
+      onclick="findOffers()"
+    >
+      Find Offers
+    </button>
+
+    <div id="message" class="message"></div>
+
+  </div>
+
+
+  <div id="offersCard" class="card hidden">
+
+    <h2>Available Offers</h2>
+
+    <div id="offers"></div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+async function findOffers() {
+
+  const amount =
+    Number(document.getElementById("amount").value);
+
+  const paymentMethod =
+    document.getElementById("paymentMethod").value;
+
+  const message =
+    document.getElementById("message");
+
+  const offersCard =
+    document.getElementById("offersCard");
+
+  const offersBox =
+    document.getElementById("offers");
+
+  message.innerHTML = "";
+  offersBox.innerHTML = "";
+
+  if (!Number.isFinite(amount) || amount < 1) {
+
+    message.innerHTML =
+      '<div class="error">Enter an amount of at least $1.</div>';
+
+    return;
+  }
+
+  message.innerHTML =
+    "Searching for offers...";
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/offers?amount=" +
+        encodeURIComponent(amount) +
+        "&paymentMethod=" +
+        encodeURIComponent(paymentMethod)
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+
+      throw new Error(
+        data.error || "Unable to find offers."
+      );
+
+    }
+
+    message.innerHTML = "";
+
+    if (!data.offers || data.offers.length === 0) {
+
+      offersCard.classList.remove("hidden");
+
+      offersBox.innerHTML =
+        '<p>No offers are currently available.</p>';
+
+      return;
+    }
+
+    offersCard.classList.remove("hidden");
+
+    data.offers.forEach(function(offer) {
+
+      const box =
+        document.createElement("div");
+
+      box.className = "offer";
+
+      box.innerHTML = `
+
+        <div class="offer-header">
+
+          <div class="seller">
+            ${escapeHtml(offer.sellerName)}
+          </div>
+
+          <div class="rate">
+            ${escapeHtml(offer.rate)}
+          </div>
+
+        </div>
+
+        <div class="details">
+
+          Payment: ${escapeHtml(offer.paymentMethod)}
+          <br>
+
+          Available: $${Number(offer.availableAmount).toFixed(2)}
+
+        </div>
+
+        <button
+          class="select-button"
+          onclick="selectOffer('${escapeHtml(offer.id)}')"
+        >
+          Select Offer
+        </button>
+
+      `;
+
+      offersBox.appendChild(box);
+
+    });
+
+  } catch (error) {
+
+    message.innerHTML =
+      '<div class="error">' +
+      escapeHtml(error.message) +
+      '</div>';
+
+  }
+}
+
+
+async function selectOffer(offerId) {
+
+  const amount =
+    Number(document.getElementById("amount").value);
+
+  const paymentMethod =
+    document.getElementById("paymentMethod").value;
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/trades",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify({
+            offerId: offerId,
+            amount: amount,
+            paymentMethod: paymentMethod
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+
+      throw new Error(
+        data.error || "Unable to create trade."
+      );
+
+    }
+
+    window.location.href =
+      "/trade.html?trade=" +
+      encodeURIComponent(data.tradeId);
+
+  } catch (error) {
+
+    document.getElementById("message").innerHTML =
+      '<div class="error">' +
+      escapeHtml(error.message) +
+      '</div>';
+
+  }
+}
+
+
+function escapeHtml(value) {
+
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+}
+
+</script>
+
+</body>
+</html>

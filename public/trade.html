@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trade</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #172033;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 28px;
+      margin-bottom: 20px;
+      box-shadow: 0 5px 25px rgba(0,0,0,.08);
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    .amount {
+      font-size: 38px;
+      font-weight: bold;
+      margin: 15px 0 25px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 13px 0;
+      border-bottom: 1px solid #edf0f5;
+    }
+
+    .label {
+      color: #687386;
+    }
+
+    .value {
+      font-weight: bold;
+      text-align: right;
+    }
+
+    .trade-id {
+      background: #f1f3f7;
+      border-radius: 8px;
+      padding: 12px;
+      word-break: break-all;
+      font-family: monospace;
+      margin-top: 8px;
+    }
+
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 9px;
+      padding: 14px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+
+    .primary {
+      background: #172033;
+      color: white;
+    }
+
+    .secondary {
+      background: #e9edf3;
+      color: #172033;
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .status {
+      padding: 12px;
+      border-radius: 8px;
+      background: #fff8e1;
+      margin-top: 20px;
+    }
+
+    .success {
+      background: #e8f5e9;
+      color: #176b2c;
+    }
+
+    .error {
+      color: #c62828;
+      margin-top: 15px;
+    }
+
+    .small {
+      color: #687386;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #countdown {
+      font-weight: bold;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        margin: 10px auto;
+        padding: 10px;
+      }
+
+      .card {
+        padding: 20px;
+      }
+
+      .amount {
+        font-size: 32px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="card">
+    <h1>Trade</h1>
+
+    <p class="small">
+      Your trade has been created. Complete the payment using the
+      payment method shown below.
+    </p>
+
+    <div id="amount" class="amount">$0.00</div>
+
+    <div class="row">
+      <div class="label">Seller</div>
+      <div id="seller" class="value">—</div>
+    </div>
+
+    <div class="row">
+      <div class="label">Payment method</div>
+      <div id="paymentMethod" class="value">—</div>
+    </div>
+
+    <div class="row">
+      <div class="label">Rate</div>
+      <div id="rate" class="value">—</div>
+    </div>
+
+    <div class="row">
+      <div class="label">Status</div>
+      <div id="statusText" class="value">Loading...</div>
+    </div>
+
+    <div class="row">
+      <div class="label">Expires</div>
+      <div id="countdown" class="value">—</div>
+    </div>
+  </div>
+
+
+  <div class="card">
+
+    <h2>Trade ID</h2>
+
+    <div id="tradeId" class="trade-id">Loading...</div>
+
+    <button class="secondary" onclick="copyTradeId()">
+      Copy Trade ID
+    </button>
+
+    <p class="small">
+      Keep this ID. It uniquely identifies this trade.
+    </p>
+
+  </div>
+
+
+  <div class="card">
+
+    <h2>Payment</h2>
+
+    <p class="small">
+      Payment verification is required before this trade can be
+      completed.
+    </p>
+
+    <button
+      id="paymentButton"
+      class="primary"
+      onclick="openPayment()"
+    >
+      Continue to Venmo
+    </button>
+
+    <button
+      id="submittedButton"
+      class="secondary"
+      onclick="paymentSubmitted()"
+    >
+      I have submitted payment
+    </button>
+
+    <div id="message"></div>
+
+  </div>
+
+
+  <div id="statusCard" class="card hidden">
+    <h2>Trade Status</h2>
+
+    <div id="statusBox" class="status">
+      Waiting for payment.
+    </div>
+  </div>
+
+</div>
+
+
+<script>
+
+let trade = null;
+let countdownTimer = null;
+
+
+/* =========================
+   LOAD TRADE
+========================= */
+
+async function loadTrade() {
+
+  const params = new URLSearchParams(window.location.search);
+  const tradeId = params.get("trade");
+
+  if (!tradeId) {
+    showError("No trade ID was provided.");
+    return;
+  }
+
+  try {
+
+    const response = await fetch(
+      "/api/trades/" + encodeURIComponent(tradeId)
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Unable to load trade.");
+    }
+
+    trade = data;
+
+    renderTrade();
+
+  } catch (error) {
+
+    showError(error.message);
+
+  }
+}
+
+
+/* =========================
+   RENDER TRADE
+========================= */
+
+function renderTrade() {
+
+  document.getElementById("amount").textContent =
+    "$" + Number(trade.amount).toFixed(2);
+
+  document.getElementById("seller").textContent =
+    trade.sellerName;
+
+  document.getElementById("paymentMethod").textContent =
+    trade.paymentMethod;
+
+  document.getElementById("rate").textContent =
+    Number(trade.rate).toFixed(4);
+
+  document.getElementById("statusText").textContent =
+    trade.status;
+
+  document.getElementById("tradeId").textContent =
+    trade.id;
+
+  updateStatus();
+
+  startCountdown();
+
+}
+
+
+/* =========================
+   PAYMENT
+========================= */
+
+function openPayment() {
+
+  /*
+    This prototype intentionally does not attempt to
+    bypass or simulate Venmo payment processing.
+
+    A production implementation should use an authorized
+    Venmo/payment integration appropriate for the merchant.
+  */
+
+  const message = document.getElementById("message");
+
+  message.innerHTML =
+    '<div class="status">' +
+    'Payment integration is not connected yet. ' +
+    'Use your authorized payment flow, then return here and ' +
+    'select "I have submitted payment".' +
+    '</div>';
+}
+
+
+/* =========================
+   PAYMENT SUBMITTED
+========================= */
+
+async function paymentSubmitted() {
+
+  if (!trade) {
+    return;
+  }
+
+  const message = document.getElementById("message");
+
+  message.innerHTML = "";
+
+  try {
+
+    const response = await fetch(
+      "/api/trades/" +
+      encodeURIComponent(trade.id) +
+      "/payment-submitted",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Unable to submit payment.");
+    }
+
+    trade.status = data.status;
+
+    updateStatus();
+
+    message.innerHTML =
+      '<div class="status success">' +
+      'Payment submitted. The trade is now waiting for verification.' +
+      '</div>';
+
+  } catch (error) {
+
+    showError(error.message);
+
+  }
+}
+
+
+/* =========================
+   STATUS
+========================= */
+
+function updateStatus() {
+
+  const statusBox =
+    document.getElementById("statusBox");
+
+  const statusText =
+    document.getElementById("statusText");
+
+  statusText.textContent =
+    trade.status;
+
+  document
+    .getElementById("statusCard")
+    .classList.remove("hidden");
+
+  if (trade.status === "PAYMENT_PENDING") {
+
+    statusBox.className = "status";
+
+    statusBox.textContent =
+      "Waiting for payment.";
+
+  } else if (trade.status === "VERIFICATION_PENDING") {
+
+    statusBox.className =
+      "status success";
+
+    statusBox.textContent =
+      "Payment submitted. Waiting for verification.";
+
+  } else if (trade.status === "COMPLETED") {
+
+    statusBox.className =
+      "status success";
+
+    statusBox.textContent =
+      "Trade completed.";
+
+    document.getElementById("paymentButton")
+      .disabled = true;
+
+    document.getElementById("submittedButton")
+      .disabled = true;
+
+  } else if (trade.status === "EXPIRED") {
+
+    statusBox.className = "status";
+
+    statusBox.textContent =
+      "This trade has expired.";
+
+    document.getElementById("paymentButton")
+      .disabled = true;
+
+    document.getElementById("submittedButton")
+      .disabled = true;
+
+  } else if (trade.status === "CANCELLED") {
+
+    statusBox.className = "status";
+
+    statusBox.textContent =
+      "This trade was cancelled.";
+
+    document.getElementById("paymentButton")
+      .disabled = true;
+
+    document.getElementById("submittedButton")
+      .disabled = true;
+  }
+}
+
+
+/* =========================
+   COUNTDOWN
+========================= */
+
+function startCountdown() {
+
+  if (countdownTimer) {
+    clearInterval(countdownTimer);
+  }
+
+  function updateCountdown() {
+
+    const remaining =
+      new Date(trade.expiresAt).getTime() -
+      Date.now();
+
+    if (remaining <= 0) {
+
+      document.getElementById("countdown")
+        .textContent = "Expired";
+
+      clearInterval(countdownTimer);
+
+      return;
+    }
+
+    const totalSeconds =
+      Math.floor(remaining / 1000);
+
+    const hours =
+      Math.floor(totalSeconds / 3600);
+
+    const minutes =
+      Math.floor((totalSeconds % 3600) / 60);
+
+    const seconds =
+      totalSeconds % 60;
+
+    document.getElementById("countdown")
+      .textContent =
+      String(hours).padStart(2, "0") +
+      ":" +
+      String(minutes).padStart(2, "0") +
+      ":" +
+      String(seconds).padStart(2, "0");
+  }
+
+  updateCountdown();
+
+  countdownTimer =
+    setInterval(updateCountdown, 1000);
+}
+
+
+/* =========================
+   COPY
+========================= */
+
+async function copyTradeId() {
+
+  if (!trade) {
+    return;
+  }
+
+  try {
+
+    await navigator.clipboard.writeText(trade.id);
+
+    document.getElementById("message").innerHTML =
+      '<div class="status success">' +
+      'Trade ID copied.' +
+      '</div>';
+
+  } catch (error) {
+
+    showError("Unable to copy Trade ID.");
+
+  }
+}
+
+
+/* =========================
+   ERROR
+========================= */
+
+function showError(message) {
+
+  document.getElementById("message").innerHTML =
+    '<div class="error">' +
+    escapeHtml(message) +
+    '</div>';
+}
+
+
+/* =========================
+   ESCAPE HTML
+========================= */
+
+function escapeHtml(value) {
+
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+
+/* =========================
+   AUTO REFRESH
+========================= */
+
+setInterval(async function () {
+
+  if (!trade) {
+    return;
+  }
+
+  try {
+
+    const response = await fetch(
+      "/api/trades/" +
+      encodeURIComponent(trade.id)
+    );
+
+    if (!response.ok) {
+      return;
+    }
+
+    const data = await response.json();
+
+    trade = data;
+
+    updateStatus();
+
+  } catch (_) {}
+
+}, 10000);
+
+
+/* =========================
+   START
+========================= */
+
+loadTrade();
+
+</script>
+
+</body>
+</html>
