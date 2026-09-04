@@ -53,6 +53,9 @@ app.use(
 );
 
 app.use(express.static(path.join(__dirname, "public")));
+app.get("/admin.html", function (req, res) {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
 
 
 /* =========================
