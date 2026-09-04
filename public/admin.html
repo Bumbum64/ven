@@ -1,53 +1,641 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Admin Login</title>
-</head>
-<body>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Payment Orders</title>
 
-<h2>Admin Login</h2>
+  <style>
+    * { box-sizing: border-box; }
 
-<input id="password" type="password" placeholder="Password">
-<button id="loginButton" type="button">Login</button>
-
-<p id="message"></p>
-
-<script>
-document.getElementById("loginButton").onclick = function () {
-
-  var password = document.getElementById("password").value;
-  var message = document.getElementById("message");
-
-  message.innerHTML = "Logging in...";
-
-  fetch("/api/admin/login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      password: password
-    })
-  })
-  .then(function(response) {
-    return response.json();
-  })
-  .then(function(data) {
-
-    if (data.success) {
-      message.innerHTML = "Login successful!";
-      window.location.href = "/admin-dashboard.html";
-    } else {
-      message.innerHTML = data.error || "Login failed.";
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #172033;
     }
 
-  })
-  .catch(function(error) {
-    message.innerHTML = "Error connecting to server.";
-    console.log(error);
+    .container {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 25px;
+      box-shadow: 0 5px 25px rgba(0,0,0,.08);
+    }
+
+    h1 { margin-top: 0; }
+
+    input {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #ccd3df;
+      border-radius: 8px;
+      font-size: 16px;
+      margin: 10px 0;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 11px 16px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    .primary {
+      background: #172033;
+      color: white;
+      width: 100%;
+      margin-top: 5px;
+    }
+
+    .complete {
+      background: #16803c;
+      color: white;
+    }
+
+    .cancel {
+      background: #c62828;
+      color: white;
+    }
+
+    .secondary {
+      background: #e9edf3;
+      color: #172033;
+    }
+
+    .hidden { display: none; }
+
+    .error {
+      color: #c62828;
+      margin-top: 12px;
+    }
+
+    .success {
+      color: #16803c;
+      margin-top: 12px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 850px;
+    }
+
+    th, td {
+      padding: 13px 10px;
+      border-bottom: 1px solid #e5e8ee;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th { background: #f7f8fa; }
+
+    .status {
+      display: inline-block;
+      padding: 6px 9px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .pending {
+      background: #fff4cc;
+      color: #7a5b00;
+    }
+
+    .verification {
+      background: #dcecff;
+      color: #14549a;
+    }
+
+    .completed {
+      background: #d9f5e4;
+      color: #176b39;
+    }
+
+    .cancelled, .expired {
+      background: #fbe0e0;
+      color: #8d2020;
+    }
+
+    .actions {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .muted {
+      color: #687386;
+      font-size: 13px;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 40px;
+      color: #687386;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        margin: 10px auto;
+        padding: 10px;
+      }
+
+      .card { padding: 18px; }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div id="loginCard" class="card">
+    <h1>Admin Login</h1>
+
+    <p class="muted">
+      Authorized order management only.
+    </p>
+
+    <input
+      id="password"
+      type="password"
+      placeholder="Admin password"
+      autocomplete="current-password"
+    >
+
+    <button id="loginButton" class="primary" onclick="login()">
+      Sign In
+    </button>
+
+    <div id="loginError" class="error"></div>
+  </div>
+
+
+  <div id="dashboard" class="hidden">
+
+    <div class="topbar">
+
+      <div>
+        <h1>Order Management</h1>
+
+        <div class="muted">
+          Review payment submissions and update order status.
+        </div>
+      </div>
+
+      <div>
+        <button class="secondary" onclick="loadOrders()">
+          Refresh
+        </button>
+
+        <button class="secondary" onclick="logout()">
+          Logout
+        </button>
+      </div>
+
+    </div>
+
+
+    <div class="card">
+
+      <div id="message"></div>
+
+      <div class="table-wrap">
+
+        <table>
+          <thead>
+            <tr>
+              <th>Order</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody id="ordersBody"></tbody>
+        </table>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+async function checkSession() {
+  try {
+    const response = await fetch("/api/admin/session");
+    const data = await response.json();
+
+    if (data.authenticated) {
+      showDashboard();
+      loadOrders();
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+
+async function login() {
+
+  const password =
+    document.getElementById("password").value;
+
+  const errorBox =
+    document.getElementById("loginError");
+
+  errorBox.textContent = "";
+
+  if (!password) {
+    errorBox.textContent =
+      "Please enter the admin password.";
+    return;
+  }
+
+  const button =
+    document.getElementById("loginButton");
+
+  button.disabled = true;
+  button.textContent = "Signing in...";
+
+  try {
+
+    const response = await fetch(
+      "/api/admin/login",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          password: password
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      errorBox.textContent =
+        data.error || "Login failed.";
+      return;
+    }
+
+    document.getElementById("password").value = "";
+
+    showDashboard();
+    loadOrders();
+
+  } catch (error) {
+
+    errorBox.textContent =
+      "Unable to connect to the server.";
+
+  } finally {
+
+    button.disabled = false;
+    button.textContent = "Sign In";
+
+  }
+}
+
+
+function showDashboard() {
+  document
+    .getElementById("loginCard")
+    .classList.add("hidden");
+
+  document
+    .getElementById("dashboard")
+    .classList.remove("hidden");
+}
+
+
+function showLogin() {
+  document
+    .getElementById("dashboard")
+    .classList.add("hidden");
+
+  document
+    .getElementById("loginCard")
+    .classList.remove("hidden");
+}
+
+
+async function logout() {
+
+  try {
+    await fetch(
+      "/api/admin/logout",
+      {
+        method: "POST"
+      }
+    );
+  } finally {
+    showLogin();
+  }
+}
+
+
+async function loadOrders() {
+
+  const body =
+    document.getElementById("ordersBody");
+
+  const message =
+    document.getElementById("message");
+
+  message.innerHTML = "";
+
+  body.innerHTML =
+    '<tr><td colspan="6" class="empty">Loading orders...</td></tr>';
+
+  try {
+
+    const response =
+      await fetch("/api/admin/orders");
+
+    if (response.status === 401) {
+      showLogin();
+      return;
+    }
+
+    const orders =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        orders.error || "Unable to load orders."
+      );
+    }
+
+    if (orders.length === 0) {
+      body.innerHTML =
+        '<tr><td colspan="6" class="empty">No orders yet.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = "";
+
+    orders.forEach(function(order) {
+
+      const row =
+        document.createElement("tr");
+
+      const statusClass =
+        getStatusClass(order.status);
+
+      let actions = "";
+
+      if (order.status === "VERIFICATION_PENDING") {
+
+        actions = `
+          <div class="actions">
+
+            <button
+              class="complete"
+              onclick="updateStatus('${escapeHtml(order.id)}', 'COMPLETED')"
+            >
+              Complete
+            </button>
+
+            <button
+              class="cancel"
+              onclick="updateStatus('${escapeHtml(order.id)}', 'CANCELLED')"
+            >
+              Cancel
+            </button>
+
+          </div>
+        `;
+
+      } else {
+
+        actions =
+          '<span class="muted">No action</span>';
+
+      }
+
+      row.innerHTML = `
+
+        <td>
+          <strong>${escapeHtml(order.id)}</strong>
+        </td>
+
+        <td>
+          $${Number(order.amount).toFixed(2)}
+        </td>
+
+        <td>
+          <span class="status ${statusClass}">
+            ${escapeHtml(order.status)}
+          </span>
+        </td>
+
+        <td>
+          ${formatDate(order.createdAt)}
+        </td>
+
+        <td>
+          ${formatDate(order.updatedAt)}
+        </td>
+
+        <td>
+          ${actions}
+        </td>
+
+      `;
+
+      body.appendChild(row);
+
+    });
+
+  } catch (error) {
+
+    body.innerHTML = `
+      <tr>
+        <td colspan="6" class="empty">
+          ${escapeHtml(error.message)}
+        </td>
+      </tr>
+    `;
+
+  }
+}
+
+
+async function updateStatus(id, status) {
+
+  const action =
+    status === "COMPLETED"
+      ? "complete"
+      : "cancel";
+
+  const confirmed =
+    confirm(
+      "Are you sure you want to " +
+      action +
+      " order " +
+      id +
+      "?"
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/admin/orders/" +
+        encodeURIComponent(id) +
+        "/status",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            status: status
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (response.status === 401) {
+      showLogin();
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        data.error || "Unable to update order."
+      );
+    }
+
+    const message =
+      document.getElementById("message");
+
+    message.innerHTML =
+      '<div class="success">Order updated successfully.</div>';
+
+    loadOrders();
+
+    setTimeout(function() {
+      message.innerHTML = "";
+    }, 3000);
+
+  } catch (error) {
+
+    const message =
+      document.getElementById("message");
+
+    message.innerHTML =
+      '<div class="error">' +
+      escapeHtml(error.message) +
+      "</div>";
+
+  }
+}
+
+
+function getStatusClass(status) {
+
+  switch (status) {
+
+    case "PAYMENT_PENDING":
+      return "pending";
+
+    case "VERIFICATION_PENDING":
+      return "verification";
+
+    case "COMPLETED":
+      return "completed";
+
+    case "CANCELLED":
+      return "cancelled";
+
+    case "EXPIRED":
+      return "expired";
+
+    default:
+      return "";
+  }
+}
+
+
+function formatDate(value) {
+
+  const date =
+    new Date(value);
+
+  return date.toLocaleString();
+}
+
+
+function escapeHtml(value) {
+
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+
+document
+  .getElementById("password")
+  .addEventListener("keydown", function(event) {
+
+    if (event.key === "Enter") {
+      login();
+    }
+
   });
 
-};
+
+checkSession();
+
 </script>
 
 </body>
