@@ -3,12 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trade</title>
-
+  <title>Trade — Payment Marketplace</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -18,249 +15,405 @@
     }
 
     .container {
-      max-width: 700px;
+      width: min(760px, calc(100% - 32px));
       margin: 40px auto;
-      padding: 20px;
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .brand {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .badge {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #3949ab;
+      font-size: 13px;
+      font-weight: 700;
     }
 
     .card {
       background: white;
-      border-radius: 14px;
+      border-radius: 18px;
       padding: 28px;
-      margin-bottom: 20px;
-      box-shadow: 0 5px 25px rgba(0,0,0,.08);
+      box-shadow: 0 8px 30px rgba(0,0,0,.07);
+      margin-bottom: 18px;
     }
 
     h1 {
-      margin-top: 0;
+      margin: 0 0 8px;
+      font-size: 28px;
     }
 
-    .amount {
-      font-size: 38px;
-      font-weight: bold;
-      margin: 15px 0 25px;
+    .subtitle {
+      color: #697386;
+      margin-bottom: 26px;
     }
 
-    .row {
-      display: flex;
-      justify-content: space-between;
-      gap: 20px;
-      padding: 13px 0;
-      border-bottom: 1px solid #edf0f5;
+    .intent {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .intent-label {
+      color: #6b7280;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 5px;
+    }
+
+    .intent-id {
+      font-family: monospace;
+      font-size: 15px;
+      word-break: break-all;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .item {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 15px;
     }
 
     .label {
-      color: #687386;
+      color: #6b7280;
+      font-size: 13px;
+      margin-bottom: 6px;
     }
 
     .value {
-      font-weight: bold;
-      text-align: right;
+      font-size: 18px;
+      font-weight: 700;
     }
 
-    .trade-id {
-      background: #f1f3f7;
-      border-radius: 8px;
-      padding: 12px;
-      word-break: break-all;
+    .status {
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: #fff7ed;
+      color: #9a3412;
+      font-weight: 700;
+      margin: 20px 0;
+    }
+
+    .countdown {
       font-family: monospace;
-      margin-top: 8px;
+      font-size: 22px;
+      margin-top: 5px;
     }
 
     button {
       width: 100%;
       border: 0;
-      border-radius: 9px;
-      padding: 14px;
+      border-radius: 12px;
+      padding: 15px;
       font-size: 16px;
+      font-weight: 700;
       cursor: pointer;
-      margin-top: 12px;
+      margin-top: 10px;
     }
 
     .primary {
-      background: #172033;
+      background: #2563eb;
       color: white;
     }
 
+    .primary:hover {
+      background: #1d4ed8;
+    }
+
     .secondary {
-      background: #e9edf3;
+      background: #eef2f7;
       color: #172033;
     }
 
-    button:disabled {
-      opacity: .55;
-      cursor: not-allowed;
-    }
-
-    .status {
-      padding: 12px;
-      border-radius: 8px;
-      background: #fff8e1;
-      margin-top: 20px;
-    }
-
-    .success {
-      background: #e8f5e9;
-      color: #176b2c;
-    }
-
-    .error {
-      color: #c62828;
+    .message {
+      display: none;
+      padding: 14px;
+      border-radius: 10px;
       margin-top: 15px;
-    }
-
-    .small {
-      color: #687386;
-      font-size: 14px;
+      background: #eff6ff;
+      color: #1e40af;
       line-height: 1.5;
     }
 
-    .hidden {
-      display: none;
+    .success {
+      background: #ecfdf5;
+      color: #047857;
     }
 
-    #countdown {
-      font-weight: bold;
+    .danger {
+      background: #fef2f2;
+      color: #b91c1c;
     }
 
-    @media (max-width: 600px) {
+    .steps {
+      display: flex;
+      gap: 8px;
+      margin: 22px 0;
+    }
+
+    .step {
+      flex: 1;
+      height: 7px;
+      border-radius: 99px;
+      background: #e5e7eb;
+    }
+
+    .step.active {
+      background: #2563eb;
+    }
+
+    .small {
+      color: #6b7280;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media(max-width: 600px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
       .container {
-        margin: 10px auto;
-        padding: 10px;
+        width: min(100% - 20px, 760px);
+        margin: 20px auto;
       }
 
       .card {
         padding: 20px;
-      }
-
-      .amount {
-        font-size: 32px;
       }
     }
   </style>
 </head>
 
 <body>
+  <div class="container">
 
-<div class="container">
-
-  <div class="card">
-    <h1>Trade</h1>
-
-    <p class="small">
-      Your trade has been created. Complete the payment using the
-      payment method shown below.
-    </p>
-
-    <div id="amount" class="amount">$0.00</div>
-
-    <div class="row">
-      <div class="label">Seller</div>
-      <div id="seller" class="value">—</div>
+    <div class="top">
+      <div class="brand">Payment Marketplace</div>
+      <div class="badge">Trade</div>
     </div>
 
-    <div class="row">
-      <div class="label">Payment method</div>
-      <div id="paymentMethod" class="value">—</div>
+    <div class="card">
+      <h1>Trade details</h1>
+      <div class="subtitle">
+        Your unique trade intent has been created.
+      </div>
+
+      <div class="intent">
+        <div class="intent-label">Trade / Intent ID</div>
+        <div class="intent-id" id="tradeId">Loading...</div>
+      </div>
+
+      <div class="steps">
+        <div class="step active" id="step1"></div>
+        <div class="step" id="step2"></div>
+        <div class="step" id="step3"></div>
+      </div>
+
+      <div class="grid">
+        <div class="item">
+          <div class="label">Amount</div>
+          <div class="value" id="amount">—</div>
+        </div>
+
+        <div class="item">
+          <div class="label">Payment method</div>
+          <div class="value" id="paymentMethod">—</div>
+        </div>
+
+        <div class="item">
+          <div class="label">Seller</div>
+          <div class="value" id="seller">—</div>
+        </div>
+
+        <div class="item">
+          <div class="label">Rate</div>
+          <div class="value" id="rate">—</div>
+        </div>
+      </div>
+
+      <div class="status" id="statusBox">
+        Status: <span id="status">Loading...</span>
+        <div class="countdown" id="countdown"></div>
+      </div>
+
+      <button class="primary" id="paymentButton">
+        Continue to payment
+      </button>
+
+      <button class="secondary" id="submittedButton">
+        I have submitted payment
+      </button>
+
+      <div class="message" id="message"></div>
+
+      <p class="small">
+        Payment confirmation is not assumed from this page. A trade moves
+        to verification only after the payment-submitted signal, and
+        completion should occur only after legitimate payment verification.
+      </p>
     </div>
-
-    <div class="row">
-      <div class="label">Rate</div>
-      <div id="rate" class="value">—</div>
-    </div>
-
-    <div class="row">
-      <div class="label">Status</div>
-      <div id="statusText" class="value">Loading...</div>
-    </div>
-
-    <div class="row">
-      <div class="label">Expires</div>
-      <div id="countdown" class="value">—</div>
-    </div>
-  </div>
-
-
-  <div class="card">
-
-    <h2>Trade ID</h2>
-
-    <div id="tradeId" class="trade-id">Loading...</div>
-
-    <button class="secondary" onclick="copyTradeId()">
-      Copy Trade ID
-    </button>
-
-    <p class="small">
-      Keep this ID. It uniquely identifies this trade.
-    </p>
-
-  </div>
-
-
-  <div class="card">
-
-    <h2>Payment</h2>
-
-    <p class="small">
-      Payment verification is required before this trade can be
-      completed.
-    </p>
-
-    <button
-      id="paymentButton"
-      class="primary"
-      onclick="openPayment()"
-    >
-      Continue to Venmo
-    </button>
-
-    <button
-      id="submittedButton"
-      class="secondary"
-      onclick="paymentSubmitted()"
-    >
-      I have submitted payment
-    </button>
-
-    <div id="message"></div>
 
   </div>
-
-
-  <div id="statusCard" class="card hidden">
-    <h2>Trade Status</h2>
-
-    <div id="statusBox" class="status">
-      Waiting for payment.
-    </div>
-  </div>
-
-</div>
-
 
 <script>
+const params = new URLSearchParams(window.location.search);
+const tradeId = params.get("trade");
 
 let trade = null;
-let countdownTimer = null;
+let timer = null;
 
+const $ = id => document.getElementById(id);
 
-/* =========================
-   LOAD TRADE
-========================= */
+function showMessage(text, type = "") {
+  const box = $("message");
+  box.textContent = text;
+  box.className = "message " + type;
+  box.style.display = "block";
+}
+
+function formatMoney(cents) {
+  return "$" + (Number(cents) / 100).toFixed(2);
+}
+
+function updateSteps(status) {
+  $("step1").classList.remove("active");
+  $("step2").classList.remove("active");
+  $("step3").classList.remove("active");
+
+  if (status === "PAYMENT_PENDING") {
+    $("step1").classList.add("active");
+  } else if (status === "VERIFICATION_PENDING") {
+    $("step1").classList.add("active");
+    $("step2").classList.add("active");
+  } else if (status === "COMPLETED") {
+    $("step1").classList.add("active");
+    $("step2").classList.add("active");
+    $("step3").classList.add("active");
+  }
+}
+
+function updateCountdown(expiresAt, status) {
+  if (timer) clearInterval(timer);
+
+  if (!expiresAt || status !== "PAYMENT_PENDING") {
+    $("countdown").textContent = "";
+    return;
+  }
+
+  function tick() {
+    const remaining = new Date(expiresAt).getTime() - Date.now();
+
+    if (remaining <= 0) {
+      $("countdown").textContent = "Expired";
+      clearInterval(timer);
+      loadTrade();
+      return;
+    }
+
+    const totalSeconds = Math.floor(remaining / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    $("countdown").textContent =
+      "Expires in " +
+      String(hours).padStart(2, "0") + ":" +
+      String(minutes).padStart(2, "0") + ":" +
+      String(seconds).padStart(2, "0");
+  }
+
+  tick();
+  timer = setInterval(tick, 1000);
+}
+
+function renderTrade(data) {
+  trade = data;
+
+  $("tradeId").textContent = data.id || tradeId;
+
+  $("amount").textContent =
+    data.amount_cents != null
+      ? formatMoney(data.amount_cents)
+      : (data.amount != null ? "$" + Number(data.amount).toFixed(2) : "—");
+
+  $("paymentMethod").textContent = data.payment_method || "—";
+  $("seller").textContent = data.seller_name || "—";
+
+  $("rate").textContent =
+    data.rate != null ? Number(data.rate).toFixed(6) : "—";
+
+  $("status").textContent = data.status || "UNKNOWN";
+
+  updateSteps(data.status);
+
+  updateCountdown(data.expires_at, data.status);
+
+  const paymentButton = $("paymentButton");
+  const submittedButton = $("submittedButton");
+
+  paymentButton.style.display = "none";
+  submittedButton.style.display = "none";
+
+  if (data.status === "PAYMENT_PENDING") {
+    paymentButton.style.display = "block";
+    submittedButton.style.display = "block";
+  }
+
+  if (data.status === "VERIFICATION_PENDING") {
+    showMessage(
+      "Payment has been submitted. The trade is now waiting for legitimate verification.",
+      ""
+    );
+  }
+
+  if (data.status === "COMPLETED") {
+    showMessage(
+      "Trade completed successfully.",
+      "success"
+    );
+  }
+
+  if (data.status === "CANCELLED") {
+    showMessage(
+      "This trade has been cancelled.",
+      "danger"
+    );
+  }
+
+  if (data.status === "EXPIRED") {
+    showMessage(
+      "This trade has expired.",
+      "danger"
+    );
+  }
+}
 
 async function loadTrade() {
-
-  const params = new URLSearchParams(window.location.search);
-  const tradeId = params.get("trade");
-
   if (!tradeId) {
-    showError("No trade ID was provided.");
+    showMessage("No trade ID was provided.", "danger");
     return;
   }
 
   try {
-
     const response = await fetch(
       "/api/trades/" + encodeURIComponent(tradeId)
     );
@@ -271,93 +424,28 @@ async function loadTrade() {
       throw new Error(data.error || "Unable to load trade.");
     }
 
-    trade = data;
-
-    renderTrade();
+    renderTrade(data);
 
   } catch (error) {
-
-    showError(error.message);
-
+    showMessage(error.message, "danger");
   }
 }
 
+$("paymentButton").addEventListener("click", () => {
+  showMessage(
+    "Payment integration is not connected yet. Use only the authorized payment method provided by the marketplace. After making the legitimate payment, return here and use “I have submitted payment.”"
+  );
+});
 
-/* =========================
-   RENDER TRADE
-========================= */
+$("submittedButton").addEventListener("click", async () => {
+  if (!tradeId) return;
 
-function renderTrade() {
-
-  document.getElementById("amount").textContent =
-    "$" + Number(trade.amount).toFixed(2);
-
-  document.getElementById("seller").textContent =
-    trade.sellerName;
-
-  document.getElementById("paymentMethod").textContent =
-    trade.paymentMethod;
-
-  document.getElementById("rate").textContent =
-    Number(trade.rate).toFixed(4);
-
-  document.getElementById("statusText").textContent =
-    trade.status;
-
-  document.getElementById("tradeId").textContent =
-    trade.id;
-
-  updateStatus();
-
-  startCountdown();
-
-}
-
-
-/* =========================
-   PAYMENT
-========================= */
-
-function openPayment() {
-
-  /*
-    This prototype intentionally does not attempt to
-    bypass or simulate Venmo payment processing.
-
-    A production implementation should use an authorized
-    Venmo/payment integration appropriate for the merchant.
-  */
-
-  const message = document.getElementById("message");
-
-  message.innerHTML =
-    '<div class="status">' +
-    'Payment integration is not connected yet. ' +
-    'Use your authorized payment flow, then return here and ' +
-    'select "I have submitted payment".' +
-    '</div>';
-}
-
-
-/* =========================
-   PAYMENT SUBMITTED
-========================= */
-
-async function paymentSubmitted() {
-
-  if (!trade) {
-    return;
-  }
-
-  const message = document.getElementById("message");
-
-  message.innerHTML = "";
+  $("submittedButton").disabled = true;
 
   try {
-
     const response = await fetch(
       "/api/trades/" +
-      encodeURIComponent(trade.id) +
+      encodeURIComponent(tradeId) +
       "/payment-submitted",
       {
         method: "POST",
@@ -370,250 +458,25 @@ async function paymentSubmitted() {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || "Unable to submit payment.");
+      throw new Error(data.error || "Unable to submit payment status.");
     }
 
-    trade.status = data.status;
-
-    updateStatus();
-
-    message.innerHTML =
-      '<div class="status success">' +
-      'Payment submitted. The trade is now waiting for verification.' +
-      '</div>';
-
-  } catch (error) {
-
-    showError(error.message);
-
-  }
-}
-
-
-/* =========================
-   STATUS
-========================= */
-
-function updateStatus() {
-
-  const statusBox =
-    document.getElementById("statusBox");
-
-  const statusText =
-    document.getElementById("statusText");
-
-  statusText.textContent =
-    trade.status;
-
-  document
-    .getElementById("statusCard")
-    .classList.remove("hidden");
-
-  if (trade.status === "PAYMENT_PENDING") {
-
-    statusBox.className = "status";
-
-    statusBox.textContent =
-      "Waiting for payment.";
-
-  } else if (trade.status === "VERIFICATION_PENDING") {
-
-    statusBox.className =
-      "status success";
-
-    statusBox.textContent =
-      "Payment submitted. Waiting for verification.";
-
-  } else if (trade.status === "COMPLETED") {
-
-    statusBox.className =
-      "status success";
-
-    statusBox.textContent =
-      "Trade completed.";
-
-    document.getElementById("paymentButton")
-      .disabled = true;
-
-    document.getElementById("submittedButton")
-      .disabled = true;
-
-  } else if (trade.status === "EXPIRED") {
-
-    statusBox.className = "status";
-
-    statusBox.textContent =
-      "This trade has expired.";
-
-    document.getElementById("paymentButton")
-      .disabled = true;
-
-    document.getElementById("submittedButton")
-      .disabled = true;
-
-  } else if (trade.status === "CANCELLED") {
-
-    statusBox.className = "status";
-
-    statusBox.textContent =
-      "This trade was cancelled.";
-
-    document.getElementById("paymentButton")
-      .disabled = true;
-
-    document.getElementById("submittedButton")
-      .disabled = true;
-  }
-}
-
-
-/* =========================
-   COUNTDOWN
-========================= */
-
-function startCountdown() {
-
-  if (countdownTimer) {
-    clearInterval(countdownTimer);
-  }
-
-  function updateCountdown() {
-
-    const remaining =
-      new Date(trade.expiresAt).getTime() -
-      Date.now();
-
-    if (remaining <= 0) {
-
-      document.getElementById("countdown")
-        .textContent = "Expired";
-
-      clearInterval(countdownTimer);
-
-      return;
-    }
-
-    const totalSeconds =
-      Math.floor(remaining / 1000);
-
-    const hours =
-      Math.floor(totalSeconds / 3600);
-
-    const minutes =
-      Math.floor((totalSeconds % 3600) / 60);
-
-    const seconds =
-      totalSeconds % 60;
-
-    document.getElementById("countdown")
-      .textContent =
-      String(hours).padStart(2, "0") +
-      ":" +
-      String(minutes).padStart(2, "0") +
-      ":" +
-      String(seconds).padStart(2, "0");
-  }
-
-  updateCountdown();
-
-  countdownTimer =
-    setInterval(updateCountdown, 1000);
-}
-
-
-/* =========================
-   COPY
-========================= */
-
-async function copyTradeId() {
-
-  if (!trade) {
-    return;
-  }
-
-  try {
-
-    await navigator.clipboard.writeText(trade.id);
-
-    document.getElementById("message").innerHTML =
-      '<div class="status success">' +
-      'Trade ID copied.' +
-      '</div>';
-
-  } catch (error) {
-
-    showError("Unable to copy Trade ID.");
-
-  }
-}
-
-
-/* =========================
-   ERROR
-========================= */
-
-function showError(message) {
-
-  document.getElementById("message").innerHTML =
-    '<div class="error">' +
-    escapeHtml(message) +
-    '</div>';
-}
-
-
-/* =========================
-   ESCAPE HTML
-========================= */
-
-function escapeHtml(value) {
-
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-
-/* =========================
-   AUTO REFRESH
-========================= */
-
-setInterval(async function () {
-
-  if (!trade) {
-    return;
-  }
-
-  try {
-
-    const response = await fetch(
-      "/api/trades/" +
-      encodeURIComponent(trade.id)
+    renderTrade(data);
+
+    showMessage(
+      "Payment submission recorded. The trade is now awaiting verification.",
+      ""
     );
 
-    if (!response.ok) {
-      return;
-    }
-
-    const data = await response.json();
-
-    trade = data;
-
-    updateStatus();
-
-  } catch (_) {}
-
-}, 10000);
-
-
-/* =========================
-   START
-========================= */
+  } catch (error) {
+    showMessage(error.message, "danger");
+    $("submittedButton").disabled = false;
+  }
+});
 
 loadTrade();
 
+setInterval(loadTrade, 10000);
 </script>
 
 </body>
