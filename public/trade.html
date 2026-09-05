@@ -355,8 +355,8 @@ function renderTrade(data) {
       ? formatMoney(data.amount_cents)
       : (data.amount != null ? "$" + Number(data.amount).toFixed(2) : "—");
 
-  $("paymentMethod").textContent = data.payment_method || "—";
-  $("seller").textContent = data.seller_name || "—";
+  $("paymentMethod").textContent = data.paymentMethod || "—";
+  $("seller").textContent = data.sellerName|| "—";
 
   $("rate").textContent =
     data.rate != null ? Number(data.rate).toFixed(6) : "—";
@@ -365,7 +365,7 @@ function renderTrade(data) {
 
   updateSteps(data.status);
 
-  updateCountdown(data.expires_at, data.status);
+  updateCountdown(data.expiresAt, data.status);
 
   const paymentButton = $("paymentButton");
   const submittedButton = $("submittedButton");
