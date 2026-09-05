@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seller — Create Offer</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #172033;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 5px 25px rgba(0,0,0,.08);
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-top: 18px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 13px;
+      margin-top: 7px;
+      border: 1px solid #ccd3df;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 9px;
+      padding: 14px;
+      margin-top: 22px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .primary {
+      background: #172033;
+      color: white;
+    }
+
+    .message {
+      margin-top: 18px;
+      line-height: 1.5;
+    }
+
+    .success {
+      padding: 14px;
+      border-radius: 8px;
+      background: #e8f5e9;
+      color: #176b2c;
+    }
+
+    .error {
+      color: #c62828;
+    }
+
+    .offer-id {
+      margin-top: 10px;
+      padding: 12px;
+      background: #f1f3f7;
+      border-radius: 8px;
+      font-family: monospace;
+      word-break: break-all;
+    }
+
+    .small {
+      color: #687386;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="card">
+
+    <h1>Create Seller Offer</h1>
+
+    <p class="small">
+      Create an offer that buyers can see in the marketplace.
+    </p>
+
+    <label for="sellerName">Seller name</label>
+    <input
+      id="sellerName"
+      type="text"
+      maxlength="80"
+      placeholder="Example: Alex"
+    >
+
+    <label for="paymentMethod">Payment method</label>
+    <select id="paymentMethod">
+      <option value="VENMO">Venmo</option>
+    </select>
+
+    <label for="rate">Rate</label>
+    <input
+      id="rate"
+      type="number"
+      min="0.01"
+      step="0.0001"
+      value="1"
+    >
+
+    <p class="small">
+      Example: 1.00 means $1.00 of the offered asset per $1.00
+      of the buyer's requested amount.
+    </p>
+
+    <label for="availableAmount">Available amount</label>
+    <input
+      id="availableAmount"
+      type="number"
+      min="1"
+      max="1000000"
+      step="0.01"
+      value="100"
+    >
+
+    <button
+      class="primary"
+      onclick="createOffer()"
+    >
+      Create Offer
+    </button>
+
+    <div id="message" class="message"></div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+async function createOffer() {
+
+  const sellerName =
+    document.getElementById("sellerName").value.trim();
+
+  const paymentMethod =
+    document.getElementById("paymentMethod").value;
+
+  const rate =
+    Number(document.getElementById("rate").value);
+
+  const availableAmount =
+    Number(document.getElementById("availableAmount").value);
+
+  const message =
+    document.getElementById("message");
+
+  message.innerHTML = "";
+
+  if (!sellerName) {
+    message.innerHTML =
+      '<div class="error">Enter a seller name.</div>';
+    return;
+  }
+
+  if (!Number.isFinite(rate) || rate <= 0) {
+    message.innerHTML =
+      '<div class="error">Enter a valid rate.</div>';
+    return;
+  }
+
+  if (
+    !Number.isFinite(availableAmount) ||
+    availableAmount < 1
+  ) {
+    message.innerHTML =
+      '<div class="error">Enter a valid available amount.</div>';
+    return;
+  }
+
+  message.textContent = "Creating offer...";
+
+  try {
+
+    const response = await fetch("/api/offers", {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        sellerName: sellerName,
+        paymentMethod: paymentMethod,
+        rate: rate,
+        availableAmount: availableAmount
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error || "Unable to create offer."
+      );
+    }
+
+    message.innerHTML =
+      '<div class="success">' +
+      '<strong>Offer created successfully.</strong>' +
+      '<br><br>' +
+      'Offer ID:' +
+      '<div class="offer-id">' +
+      escapeHtml(data.offerId) +
+      '</div>' +
+      '<br>' +
+      'Your offer is now available in the marketplace.' +
+      '</div>';
+
+  } catch (error) {
+
+    message.innerHTML =
+      '<div class="error">' +
+      escapeHtml(error.message) +
+      '</div>';
+  }
+}
+
+
+function escapeHtml(value) {
+
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+</script>
+
+</body>
+</html>

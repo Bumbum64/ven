@@ -582,7 +582,98 @@ function createTradeId() {
   );
 }
 
+/* =========================
+   CREATE SELLER OFFER
+========================= */
 
+app.post("/api/offers", async function (req, res) {
+  try {
+    const sellerName = String(req.body.sellerName || "").trim();
+    const paymentMethod = String(
+      req.body.paymentMethod || ""
+    ).toUpperCase();
+    const rate = Number(req.body.rate);
+    const availableAmount = Number(req.body.availableAmount);
+
+    if (!sellerName || sellerName.length > 80) {
+      return res.status(400).json({
+        error: "Seller name is required and must be 80 characters or less."
+      });
+    }
+
+    if (paymentMethod !== "VENMO") {
+      return res.status(400).json({
+        error: "Unsupported payment method."
+      });
+    }
+
+    if (!Number.isFinite(rate) || rate <= 0) {
+      return res.status(400).json({
+        error: "Invalid rate."
+      });
+    }
+
+    if (
+      !Number.isFinite(availableAmount) ||
+      availableAmount < 1 ||
+      availableAmount > 1000000
+    ) {
+      return res.status(400).json({
+        error: "Available amount must be between $1 and $1,000,000."
+      });
+    }
+
+    const offerId =
+      "OFR-" +
+      Date.now().toString(36).toUpperCase() +
+      "-" +
+      crypto.randomBytes(4).toString("hex").toUpperCase();
+
+    const now = new Date();
+    const availableCents = Math.round(availableAmount * 100);
+
+    await pool.query(
+      `
+      INSERT INTO offers
+      (
+        id,
+        seller_name,
+        payment_method,
+        rate,
+        available_cents,
+        active,
+        created_at,
+        updated_at
+      )
+      VALUES ($1,$2,$3,$4,$5,TRUE,$6,$6)
+      `,
+      [
+        offerId,
+        sellerName,
+        paymentMethod,
+        rate,
+        availableCents,
+        now
+      ]
+    );
+
+    res.json({
+      success: true,
+      offerId: offerId,
+      sellerName: sellerName,
+      paymentMethod: paymentMethod,
+      rate: rate,
+      availableAmount: availableCents / 100
+    });
+
+  } catch (error) {
+    console.error("Create offer error:", error);
+
+    res.status(500).json({
+      error: "Unable to create offer."
+    });
+  }
+});
 /* =========================
    MARKETPLACE OFFERS
 ========================= */
